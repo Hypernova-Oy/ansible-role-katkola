@@ -1,0 +1,57 @@
+---
+
+## IN THIS FILE
+#
+# Configures the client user to easily connect to Kätkölä
+# Provisions the Kätkölä-server-side user and workspace
+# Manages the connection credentials
+#
+## PARAMETERS
+#
+# users - Dict, user information, either the global sysadmins Dict or a given Dict of client-specific needs
+# user  - String, username of the users-Dict to iterate on
+# katkola_hostname_from_client - String, What IP/hostname the client uses to connect to Kätkölä-server?
+#
+
+- name: "Client::main() - Extract user variables from alternative configurations or revert to defaults"
+  set_fact:
+    katkola_client_username: "{{users[user].client_username|d() or users[user].username}}"
+    katkola_server_username: "{{users[user].server_username|d() or users[user].username}}"
+
+- name: "Client::main() - {{katkola_client_username}} - Verify network visibility is defined"
+  assert:
+    that:
+      - "katkola_hostname_from_client|length > 3"
+    msg: "Parameter katkola_hostname_from_client '{{katkola_hostname_from_client}}' is not a proper ip or a hostname."
+
+- name: "Client::main() - {{katkola_client_username}} - Make sure the given client user exists with ssh-key"
+  user:
+    name: "{{katkola_client_username}}"
+    generate_ssh_key: "yes" #This will not overwrite an existing SSH key.
+  register: client_userinfo
+  become: yes
+
+- name: "Client::main() - {{katkola_client_username}} - Configure ~/.ssh/config"
+  blockinfile:
+    dest: "/home/{{katkola_client_username}}/.ssh/config"
+    marker: "# {mark} ANSIBLE MANAGED. KÄTKÖLÄ SHORTHAND"
+    create: yes
+    owner: "{{katkola_client_username}}"
+    group: "{{katkola_client_username}}"
+    mode:  0644
+    block: |
+      Host katkola
+        Hostname {{katkola_hostname_from_client}}
+        User {{katkola_server_username}}
+        Port 22
+  become: yes
+
+###############################################################
+## Set parameters for server user provisioning and provision ##
+###############################################################
+
+- name: "Client::main() - {{katkola_client_username}} - Get the id_rsa.pub for server-side provisioning"
+  set_fact:
+    katkola_client_ssh_public_key: "{{client_userinfo.ssh_public_key}}"
+
+- import_tasks: server_provision_user.yml

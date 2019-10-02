@@ -1,0 +1,13 @@
+---
+
+## IN THIS FILE
+#
+# Provision a server-side user and workspace for external users outside of our managed infrastructure.
+#
+
+- name: "Server::provision_external_user() - Assert parameters are available"
+  set_fact:
+    katkola_server_username: "{{katkola_external_users[user].username}}"
+    katkola_client_ssh_public_key: "{{katkola_external_users[user].ssh_public_key}}"
+
+- import_tasks: "{{role_path}}/tasks/client/server_provision_user.yml"

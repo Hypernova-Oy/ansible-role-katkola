@@ -1,0 +1,7 @@
+---
+
+- name: Install {{app_canonical_name}}
+  shell: cd {{app_home}} && /bin/bash -x INSTALL.sh
+  become: yes
+
+- import_tasks: filesystems.yml

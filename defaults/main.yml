@@ -1,0 +1,50 @@
+---
+
+app_canonical_name: Kätkölä
+app_lc_name: katkola
+app_home: "/opt/{{app_canonical_name}}"
+app_git_repo: "https://github.com/Hypernova-Oy/katkola.git"
+
+app_prerequisite_debian_packages:
+  - git
+  - tig
+  - apache2
+
+app_install_dir:    "/mnt/sdd/www"
+app_public_web_dir: "{{app_install_dir}}/public"
+
+## Introduce Kätkölä-client users.
+## SSH is configured for these users from the invoking Kätkölä-client and workspaces created to Kätkölä-server
+##   Is an array of usernames
+##
+## Example:
+#katkola_users:
+#  koha_hypernova:
+#    username:        "koha_hypernova"   #this or client/server_username
+#    client_username: "client_koha"  #optional
+#    server_username: "server_koha"  #optional
+
+katkola_users: []
+
+## Introduce Kätkölä-users connecting from outside of our managed infrastructure
+## If you want to grant access to 3rd party operatives, for example to share large database dumps
+## this is the correct way.
+## Only ssh public key authorization is allowed. No passwords!
+##
+## Example:
+#katkola_external_users:
+#  john:
+#    username:       "john"
+#    ssh_public_key: "ssh-rsa AAAAB...s+hcQ== ExampleWorld"
+
+katkola_external_users: []
+
+## What hostname is Kätkölä visible from the client?
+## Used to configure the .ssh/config for easy access
+##
+## Example:
+#katkola_hostname_from_client: katkola.hypernova.fi
+katkola_hostname_from_client: 'katkola_hostname_from_client-variable not set in roles/katkola/defaults/main.yml'
+
+## Deploy Kätkölä as server or client?
+katkola_mode: "server or client"

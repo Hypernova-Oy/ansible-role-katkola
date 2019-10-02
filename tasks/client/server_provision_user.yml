@@ -1,0 +1,54 @@
+---
+
+## IN THIS FILE
+#
+# Adds a Kätkölä server-side user
+# Allocates sftp-workspace
+# Configures remote access
+#
+## PARAMETERS
+#
+# katkola_server_username - String, the username of the user to ssh to in the Kätkölä server
+# katkola_client_ssh_public_key - String, id_rsa.pub of the remote user
+#
+
+#######################
+## Assert parameters ##
+#######################
+
+- name: "Server::provision_user() - Verify katkola_server_username is defined"
+  assert:
+    that:
+      - "katkola_server_username|length > 1"
+    msg: "Parameter katkola_server_username '{{katkola_server_username}}' is not long enough. Possibly malformed?"
+
+- name: "Server::provision_user() - {{katkola_server_username}} - Verify ssh pub key is defined"
+  assert:
+    that:
+      - "katkola_client_ssh_public_key|length > 300"
+    msg: "Parameter katkola_client_ssh_public_key '{{katkola_client_ssh_public_key}}' is not long enough. Possibly malformed ssh-key?"
+
+- name: "Server::provision_user() - {{katkola_server_username}} - Make sure the given server user exists in Kätkölä"
+  user:
+    name: "{{katkola_server_username}}"
+
+    #Group 'sftponly' members are chroot:ed to a sftp-directory and normal ssh access is blocked
+    #Group 'katkola' members can group write to the shared www directory
+    groups: sftponly,katkola
+
+    shell: /usr/sbin/nologin
+    password: "{{999999999999 | random | string | password_hash('sha512')}}"
+    #Without password the user account is blocked.
+    update_password: on_create
+  register: server_userinfo
+  delegate_to: katkola
+  become: yes
+
+- name: "Server::provision_user() - {{katkola_server_username}} - Allow ssh public key in Kätkölä"
+  authorized_key:
+    user: "{{katkola_server_username}}"
+    key:  "{{katkola_client_ssh_public_key}}"
+  delegate_to: katkola
+  become: yes
+
+- import_tasks: server_provision_workspace.yml

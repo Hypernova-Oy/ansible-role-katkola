@@ -1,0 +1,26 @@
+---
+
+- name: Install prerequisite debian packages
+  apt:
+    name: "{{item}}"
+  with_items: "{{app_prerequisite_debian_packages}}"
+  become: yes
+
+- name: Get the Git repo
+  git:
+    force:   no
+    repo:    "{{app_git_repo}}"
+    clone:   yes
+    dest:    "{{app_home}}"
+  register: get_git_repo
+  become: yes
+  notify:
+    - Reload app
+
+- import_tasks: server/install.yml
+  when: "get_git_repo.changed"
+
+- include_tasks: "{{role_path}}/tasks/server/server_provision_external_user.yml"
+  with_items: "{{katkola_external_users}}"
+  loop_control:
+    loop_var: user

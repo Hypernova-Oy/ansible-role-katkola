@@ -1,0 +1,29 @@
+---
+
+- name: Install zfs debian packages
+  apt:
+    name: "{{item}}"
+  with_items: [zfsutils-linux]
+  become: yes
+
+- name: "Does the zpool exists?"
+  shell: zpool list
+  register: zpool_list
+  changed_when: "0"
+  become: yes
+
+- block:
+  - name: "Create zfs pool"
+    shell: "zpool create sftponlypool raidz /dev/sdb /dev/sdc /dev/sdd"
+    become: yes
+
+  - name: "Create zfs filesystem"
+    zfs:
+      name: sftponlypool/sftponly
+      state: present
+      mountpoint: /sftponly
+      #Controls whether device nodes can be opened on this file system, for safety disallow it
+      devices: off
+      #Controls whether processes can be executed from within this file system, for safety disallow it
+      exec: off
+  when: "'sftponlypool' not in zpool_list.stdout"

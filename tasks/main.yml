@@ -1,0 +1,14 @@
+---
+
+- debug:
+    var: katkola_external_users
+
+- name: "Assert katkola_mode is 'server' or 'client'"
+  assert:
+    that: "katkola_mode == 'server' or katkola_mode == 'client'"
+
+- import_tasks: server.yml
+  when: "katkola_mode == 'server'"
+
+- import_tasks: client.yml
+  when: "katkola_mode == 'client'"

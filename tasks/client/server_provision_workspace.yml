@@ -1,0 +1,67 @@
+---
+
+## IN THIS FILE
+#
+# Creates a public web-accessible dir for the given user
+#     https://httpd.apache.org/docs/current/howto/public_html.html
+# Creates a private dir accessible only by the given user
+# Creates a link to the shared Kätkölä account with private and public dirs
+#
+## PARAMETERS
+#
+# katkola_server_username - String, the username of the user to ssh to in the Kätkölä server
+#
+
+- name: "Server::provision_workspace() - {{katkola_server_username}} - Make user-specific sftp home"
+  file:
+    state: directory
+    dest:  "/sftponly/{{katkola_server_username}}"
+    owner: "root"
+  become: yes
+  delegate_to: katkola
+
+- name: "Server::provision_workspace() - {{katkola_server_username}} - Make user-specific private dir"
+  file:
+    state: directory
+    dest:  "/sftponly/{{katkola_server_username}}/private"
+    owner: "{{katkola_server_username}}"
+  become: yes
+  delegate_to: katkola
+
+- name: "Server::provision_workspace() - {{katkola_server_username}} - Make user-specific public web dir"
+  file:
+    state: directory
+    dest:  "/sftponly/{{katkola_server_username}}/public_html"
+    owner: "{{katkola_server_username}}"
+  become: yes
+  delegate_to: katkola
+
+##Apache2 userdir-mod needs to have this public_html in the users' home dir so it can generate user-specific public web-directories
+- name: "Server::provision_workspace() - {{katkola_server_username}} - Link /home/*/public_html to the public shared web-directory"
+  file:
+    state: link
+    dest:  "/home/{{katkola_server_username}}/public_html"       #From where
+    src:   "/sftponly/{{katkola_server_username}}/public_html"   #Where to
+    owner: "{{katkola_server_username}}"
+  become: yes
+  delegate_to: katkola
+
+## Using systemd mounts here. They are much more better than the previous mount system
+
+- name: Server::provision_workspace() - {{katkola_server_username}} - Persist bind mount to /etc/fstab
+  lineinfile:
+    path: /etc/fstab
+    regexp: "/sftponly/katkola/ /sftponly/{{katkola_server_username}}/shared"
+    line:   "/sftponly/katkola/ /sftponly/{{katkola_server_username}}/shared none rw,bind,x-systemd.requires=zfs.target 0 0"
+  delegate_to: katkola
+  register: katkola_mount_persisted
+  become: yes
+
+- name: Server::provision_workspace() - {{katkola_server_username}} - Activate mount
+  systemd:
+    daemon_reload: yes
+    name:  "sftponly-{{katkola_server_username}}-shared.mount"
+    state: "started"
+  delegate_to: katkola
+  register: katkola_mount_exists
+  become: yes

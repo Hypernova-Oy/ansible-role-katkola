@@ -1,0 +1,14 @@
+---
+
+#This file is executed when the Kätkölä-role is applied with the katkola_client-parameter
+#This receives either the katkola_users-map of non-sysadmin users or uses the global sysadmins-map
+#to create a sftp-access for sysadmins.
+
+- name: Set if adding sysadmins or Kätkölä users
+  set_fact:
+    users: "{{katkola_users or sysadmins}}"
+
+- include_tasks: client/main.yml
+  with_items: "{{users|d()}}"
+  loop_control:
+    loop_var: user
